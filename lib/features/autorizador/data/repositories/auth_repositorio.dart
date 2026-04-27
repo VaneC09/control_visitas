@@ -13,6 +13,7 @@ import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
 import '../../../../core/errors/exceptions.dart';
 import '../../../../core/utils/app_logger.dart';
+import '../../../../core/config/app_routes.dart';
 
 /// Datos del empleado autenticado.
 class EmpleadoSesion {
@@ -107,7 +108,9 @@ class AuthRepositorio {
     // }
     // =========================================================================
 
-    // Modo demo: cualquier correo con contraseña no vacía pasa
+    // =========================================================================
+    // MODO DEMO (MULTI-ROL)
+    // =========================================================================
     AppLogger.info('AuthRepositorio', 'Login demo — correo: $correo');
     await Future.delayed(const Duration(milliseconds: 800));
 
@@ -115,18 +118,31 @@ class AuthRepositorio {
       throw const AuthException('Correo o contraseña incorrectos.');
     }
 
-    // Guardar token ficticio para demo
-    await _almacenamiento.write(key: _claveToken, value: 'demo_token_2026');
-    await _almacenamiento.write(key: _claveEmpleado, value: '2');
+    // 🔥 Detectar rol por correo (puedes cambiar la lógica después)
+    final esSolicitante = correo.toLowerCase().contains('solicitante');
 
-    return EmpleadoSesion(
-      idEmpleado:      2,
-      nombre:          'Yadhi',
-      apellidoPaterno: 'López',
+    final empleado = EmpleadoSesion(
+      idEmpleado:      esSolicitante ? 3 : 2,
+      nombre:          esSolicitante ? 'Vanessa' : 'Yadhi',
+      apellidoPaterno: esSolicitante ? 'Colin' : 'López',
       correo:          correo,
-      rol:             'autorizador',
+      rol:             esSolicitante ? 'solicitante' : 'autorizador',
       departamento:    'Tecnologías de la Información',
     );
+
+    // Guardar token ficticio para demo
+    await _almacenamiento.write(key: _claveToken, value: 'demo_token_2026');
+    await _almacenamiento.write(
+      key: _claveEmpleado,
+      value: empleado.idEmpleado.toString(),
+    );
+
+    AppLogger.info(
+      'AuthRepositorio',
+      'Login exitoso (demo): ${empleado.correo} - Rol: ${empleado.rol}',
+    );
+
+    return empleado;
   }
 
   // ---------------------------------------------------------------------------

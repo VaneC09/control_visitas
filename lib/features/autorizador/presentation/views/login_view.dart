@@ -28,7 +28,7 @@ class LoginView extends StatefulWidget {
 
 class _LoginViewState extends State<LoginView> {
   // Controladores de campos de texto
-  final _correoCtrl    = TextEditingController();
+  final _correoCtrl = TextEditingController();
   final _contrasenaCtrl = TextEditingController();
 
   // Clave global del formulario para validación
@@ -46,28 +46,29 @@ class _LoginViewState extends State<LoginView> {
   // ---------------------------------------------------------------------------
 
   Future<void> _iniciarSesion(BuildContext context) async {
-    // Cerrar teclado
     FocusScope.of(context).unfocus();
-
-    // Validar campos del formulario
     if (!(_formKey.currentState?.validate() ?? false)) return;
 
     AppLogger.accionUsuario('Botón Entrar presionado');
 
     await context.read<AuthViewModel>().login(
-      correo:    _correoCtrl.text,
-      contrasena: _contrasenaCtrl.text,
-      onExito: () {
-        AppLogger.navegacion(AppRoutes.bandeja);
-        Navigator.pushNamedAndRemoveUntil(
-          context,
-          AppRoutes.bandeja,
-          (_) => false,  // Elimina toda la pila — no puede volver al login
-        );
-      },
-    );
-  }
+          correo: _correoCtrl.text,
+          contrasena: _contrasenaCtrl.text,
+          onExito: () {
+            final rol = context.read<AuthViewModel>().empleado?.rol;
+            final ruta = rol == 'solicitante'
+                ? AppRoutes.dashboardSolicitante
+                : AppRoutes.bandeja;
 
+            AppLogger.navegacion(ruta);
+            Navigator.pushNamedAndRemoveUntil(
+              context,
+              ruta,
+              (_) => false,
+            );
+          },
+        );
+  }
   // ---------------------------------------------------------------------------
   // Build
   // ---------------------------------------------------------------------------
@@ -75,7 +76,7 @@ class _LoginViewState extends State<LoginView> {
   @override
   Widget build(BuildContext context) {
     final authVM = context.watch<AuthViewModel>();
-    final tema   = Theme.of(context);
+    final tema = Theme.of(context);
     final esCargando = authVM.estado == EstadoAuth.cargando;
 
     return Scaffold(
@@ -127,13 +128,17 @@ class _LoginViewState extends State<LoginView> {
                 // Badge de rol
                 const SizedBox(height: 10),
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
                   decoration: BoxDecoration(
                     color: AppColors.azulNube,
                     borderRadius: BorderRadius.circular(20),
                   ),
                   child: Text(
-                    'Rol: Autorizador',
+                    context.watch<AuthViewModel>().rolSeleccionado ==
+                            'solicitante'
+                        ? 'Rol: Solicitante'
+                        : 'Rol: Autorizador',
                     style: tema.textTheme.labelMedium?.copyWith(
                       color: AppColors.navyProfundo,
                     ),
@@ -214,7 +219,8 @@ class _LoginViewState extends State<LoginView> {
                     padding: const EdgeInsets.all(12),
                     decoration: BoxDecoration(
                       color: const Color(0xFFFEE2E2),
-                      borderRadius: BorderRadius.circular(AppSpacing.radioBorde),
+                      borderRadius:
+                          BorderRadius.circular(AppSpacing.radioBorde),
                       border: Border.all(color: AppColors.coralAccion),
                     ),
                     child: Row(
@@ -259,9 +265,14 @@ class _LoginViewState extends State<LoginView> {
                   onPressed: esCargando
                       ? null
                       : () {
-                          _correoCtrl.text  = 'yadhi.lopez@institucion.edu.mx';
+                          final rol =
+                              context.read<AuthViewModel>().rolSeleccionado;
+                          _correoCtrl.text = rol == 'solicitante'
+                              ? 'solicitante@ittoluca.edu.mx'
+                              : 'yadhi.lopez@institucion.edu.mx';
                           _contrasenaCtrl.text = 'Demo1234';
-                          AppLogger.info('LoginView', 'Modo demo activado');
+                          AppLogger.info(
+                              'LoginView', 'Modo demo activado — rol: $rol');
                         },
                   child: const Text('Modo demo offline'),
                 ),

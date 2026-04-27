@@ -4,40 +4,40 @@
 // Descripción: Punto de entrada de la aplicación control de visitas
 //              Inicializa el árbol de Providers (MVVM), configura el tema
 //              institucional OMEGA y registra las rutas nombradas.
-// Autor      : Yadhira Anadanely Benitez Millan
+// Autor      : OMEGA Solutions
 // Versión    : 1.0.0
-// Fecha      : 2026-04-25
+// Fecha      : 2026-04-26
 // =============================================================================
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
+import 'package:intl/date_symbol_data_local.dart';
 
 import 'core/config/app_colors.dart';
 import 'core/config/app_routes.dart';
-import 'core/config/app_theme.dart';
+import 'core/theme/app_theme.dart';
 import 'core/utils/app_logger.dart';
 import 'features/autorizador/bloc/auth_viewmodel.dart';
 import 'features/autorizador/bloc/bandeja_viewmodel.dart';
+import 'features/solicitante/bloc/solicitante_provider.dart';
 
 /// Punto de entrada de la aplicación.
-/// Establece orientación, barra de estado y árbol de Providers.
-void main() {
-  // Garantizar inicialización del binding antes de configuraciones de plataforma
+void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  // Bloquear orientación a modo retrato (móvil institucional)
+  await initializeDateFormatting('es_MX', null);
+
   SystemChrome.setPreferredOrientations([
     DeviceOrientation.portraitUp,
     DeviceOrientation.portraitDown,
   ]);
 
-  // Estilo de la barra de estado del sistema
   SystemChrome.setSystemUIOverlayStyle(
     const SystemUiOverlayStyle(
-      statusBarColor:            Colors.transparent,
-      statusBarIconBrightness:   Brightness.dark,
-      statusBarBrightness:       Brightness.light,
+      statusBarColor:          Colors.transparent,
+      statusBarIconBrightness: Brightness.dark,
+      statusBarBrightness:     Brightness.light,
     ),
   );
 
@@ -45,10 +45,7 @@ void main() {
   runApp(const CaApp());
 }
 
-/// Widget raíz de la aplicación CA — Control de Aulas.
-///
-/// Registra los ViewModels disponibles en el árbol de widgets mediante
-/// [MultiProvider], siguiendo el patrón MVVM (MPF-OMEGA-04 §6.1).
+/// Widget raíz de la aplicación CA.
 class CaApp extends StatelessWidget {
   const CaApp({super.key});
 
@@ -56,42 +53,18 @@ class CaApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MultiProvider(
       providers: [
-        // ViewModel de autenticación — ciclo de vida de sesión
         ChangeNotifierProvider(create: (_) => AuthViewModel()),
-
-        // ViewModel de la bandeja — solicitudes pendientes
         ChangeNotifierProvider(create: (_) => BandejaViewModel()),
+        ChangeNotifierProvider(create: (_) => SolicitanteProvider()),
       ],
       child: MaterialApp(
-        // -----------------------------------------------------------------------
-        // Metadatos de la aplicación
-        // -----------------------------------------------------------------------
         title: 'CA — Control de Aulas',
         debugShowCheckedModeBanner: false,
-
-        // -----------------------------------------------------------------------
-        // Tema institucional OMEGA (MPF-OMEGA-04 7)
-        // -----------------------------------------------------------------------
         theme: AppTheme.temaClaro,
-
-        // -----------------------------------------------------------------------
-        // Ruta inicial y mapa de rutas nombradas
-        // -----------------------------------------------------------------------
         initialRoute: AppRoutes.seleccionRol,
-        routes:       rutasApp,
-
-        // -----------------------------------------------------------------------
-        // Color de fondo durante arranque (evita flash blanco)
-        // -----------------------------------------------------------------------
+        routes:      rutasApp,
         color: AppColors.superficie0,
-
-        // -----------------------------------------------------------------------
-        // Configuración de localización (español México)
-        // -----------------------------------------------------------------------
-        // TODO: Agregar flutter_localizations cuando se active i18n 
-        // localizationsDelegates: AppLocalizations.localizationsDelegates,
-        // supportedLocales:       AppLocalizations.supportedLocales,
-        // locale:                 const Locale('es', 'MX'),
+        // TODO: Agregar flutter_localizations cuando se active i18n
       ),
     );
   }
