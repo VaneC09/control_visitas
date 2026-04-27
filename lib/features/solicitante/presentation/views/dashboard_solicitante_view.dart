@@ -9,13 +9,11 @@
 
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import '../../../../core/config/app_routes.dart';
 import '../../bloc/solicitante_provider.dart';
 import '../widgets/tarjeta_solicitud_widget.dart';
 import 'nueva_solicitud_view.dart';
 import 'detalle_solicitud_solicitante_view.dart';
 
-/// Vista principal del Solicitante: muestra próximas visitas y todas las solicitudes.
 class DashboardSolicitanteView extends StatelessWidget {
   const DashboardSolicitanteView({super.key});
 
@@ -71,7 +69,12 @@ class _DashboardContentState extends State<_DashboardContent> {
         actions: [
           IconButton(
             icon: const Icon(Icons.notifications_outlined, color: Colors.white),
-            onPressed: () => Navigator.pushNamed(context, AppRoutes.notificaciones),
+            onPressed: () => Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (_) => const _NotificacionesSolicitanteView(),
+              ),
+            ),
           ),
           IconButton(
             icon: const Icon(Icons.logout, color: Colors.white),
@@ -204,6 +207,49 @@ class _DashboardContentState extends State<_DashboardContent> {
         builder: (_) => ChangeNotifierProvider.value(
           value: context.read<SolicitanteProvider>(),
           child: DetalleSolicitudSolicitanteView(idSolicitud: idSolicitud),
+        ),
+      ),
+    );
+  }
+}
+
+// =============================================================================
+// Pantalla de notificaciones del solicitante
+// =============================================================================
+class _NotificacionesSolicitanteView extends StatelessWidget {
+  const _NotificacionesSolicitanteView();
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: const Color(0xFFF5F5F5),
+      appBar: AppBar(
+        backgroundColor: const Color(0xFFE07A5F),
+        elevation: 0,
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back, color: Colors.white),
+          onPressed: () => Navigator.of(context).pop(),
+        ),
+        title: const Text(
+          'Notificaciones',
+          style: TextStyle(
+            color: Colors.white,
+            fontWeight: FontWeight.bold,
+            fontSize: 18,
+          ),
+        ),
+      ),
+      body: Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(Icons.notifications_none, size: 64, color: Colors.grey[400]),
+            const SizedBox(height: 12),
+            Text(
+              'No tienes notificaciones.',
+              style: TextStyle(color: Colors.grey[500], fontSize: 14),
+            ),
+          ],
         ),
       ),
     );
