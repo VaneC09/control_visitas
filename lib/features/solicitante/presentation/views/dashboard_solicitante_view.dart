@@ -9,6 +9,7 @@
 
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import '../../../../core/config/app_routes.dart';
 import '../../bloc/solicitante_provider.dart';
 import '../widgets/tarjeta_solicitud_widget.dart';
 import 'nueva_solicitud_view.dart';
@@ -78,7 +79,10 @@ class _DashboardContentState extends State<_DashboardContent> {
           ),
           IconButton(
             icon: const Icon(Icons.logout, color: Colors.white),
-            onPressed: () => Navigator.of(context).pop(),
+            onPressed: () => Navigator.of(context).pushNamedAndRemoveUntil(
+              AppRoutes.seleccionRol,
+              (_) => false,
+            ),
           ),
         ],
       ),
