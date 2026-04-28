@@ -2,11 +2,14 @@
 // Archivo    : seleccion_rol_view.dart
 // Módulo     : features/shared/presentation/views
 // Descripción: Pantalla 0 — Selección del tipo de usuario antes del login.
-//              Muestra los tres roles del sistema. Autorizador y Solicitante
-//              están habilitados en esta versión.
+//              Los tres roles están habilitados en esta versión.
 // Autor      : Yadhira Anadanely Benitez Millan
-// Versión    : 1.1.0
-// Fecha      : 2026-04-26
+// Versión    : 1.2.0
+// Fecha      : 2026-04-27
+// Cambios    : v1.1.0 — Solicitante habilitado
+//              v1.2.0 — Vigilante habilitado; rutas corregidas a loginAutorizador
+//                       y loginVigilante; se elimina dependencia de AuthViewModel
+//                       para el rol vigilante (tiene su propio VigilanteViewModel)
 // =============================================================================
 
 import 'package:flutter/material.dart';
@@ -19,8 +22,17 @@ import '../../../../core/utils/app_logger.dart';
 import '../../../autorizador/bloc/auth_viewmodel.dart';
 
 /// Pantalla de selección de rol antes del login institucional.
-class SeleccionRolView extends StatelessWidget {
+class SeleccionRolView extends StatefulWidget {
   const SeleccionRolView({super.key});
+
+  @override
+  State<SeleccionRolView> createState() => _SeleccionRolViewState();
+}
+
+class _SeleccionRolViewState extends State<SeleccionRolView> {
+  /// El rol seleccionado se gestiona localmente para no mezclar
+  /// el AuthViewModel del autorizador con el rol vigilante.
+  String _rolSeleccionado = '';
 
   @override
   Widget build(BuildContext context) {
@@ -39,6 +51,8 @@ class SeleccionRolView extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.center,
             children: [
               const SizedBox(height: AppSpacing.lg),
+
+              // Logo institucional
               Container(
                 width: 88,
                 height: 88,
@@ -52,6 +66,7 @@ class SeleccionRolView extends StatelessWidget {
                   size: 44,
                 ),
               ),
+
               const SizedBox(height: AppSpacing.md),
               Text(
                 'Sistema de Gestión de Accesos',
@@ -64,7 +79,10 @@ class SeleccionRolView extends StatelessWidget {
                 style: tema.textTheme.bodyMedium,
                 textAlign: TextAlign.center,
               ),
+
               const SizedBox(height: AppSpacing.lg),
+
+              // Panel de roles
               Container(
                 decoration: BoxDecoration(
                   color: AppColors.superficie0,
@@ -78,67 +96,68 @@ class SeleccionRolView extends StatelessWidget {
                     Text('Selecciona tu rol', style: tema.textTheme.titleLarge),
                     const SizedBox(height: AppSpacing.sm),
 
-                    // Rol: Solicitante (habilitado)
+                    // ── Rol: Solicitante (habilitado) ──────────────────────
                     _TarjetaRolWidget(
-                      icono: Icons.work_rounded,
-                      colorIcono: const Color(0xFFFF8C00),
+                      icono:           Icons.work_rounded,
+                      colorIcono:      const Color(0xFFFF8C00),
                       colorFondoIcono: const Color(0xFFFFF3E0),
-                      titulo: 'Solicitante',
-                      subtitulo: 'Empleado',
-                      seleccionado: authVM.rolSeleccionado == 'solicitante',
-                      habilitado: true,
+                      titulo:          'Solicitante',
+                      subtitulo:       'Empleado',
+                      seleccionado:    _rolSeleccionado == 'solicitante',
+                      habilitado:      true,
                       onTap: () {
+                        setState(() => _rolSeleccionado = 'solicitante');
+                        // Sincronizar AuthViewModel solo para autorizador/solicitante
                         context.read<AuthViewModel>().seleccionarRol('solicitante');
-                        AppLogger.navegacion('Rol solicitante seleccionado');
+                        AppLogger.accionUsuario('Rol solicitante seleccionado');
                       },
                     ),
                     const SizedBox(height: 8),
 
-                    // Rol: Autorizador (habilitado)
+                    // ── Rol: Autorizador (habilitado) ──────────────────────
                     _TarjetaRolWidget(
-                      icono: Icons.people_alt_rounded,
-                      colorIcono: AppColors.encabezadoOscuro,
+                      icono:           Icons.people_alt_rounded,
+                      colorIcono:      AppColors.encabezadoOscuro,
                       colorFondoIcono: AppColors.azulNube,
-                      titulo: 'Autorizador',
-                      subtitulo: 'Jefe / Recursos Materiales',
-                      seleccionado: authVM.rolSeleccionado == 'autorizador',
-                      habilitado: true,
+                      titulo:          'Autorizador',
+                      subtitulo:       'Jefe / Recursos Materiales',
+                      seleccionado:    _rolSeleccionado == 'autorizador',
+                      habilitado:      true,
                       onTap: () {
+                        setState(() => _rolSeleccionado = 'autorizador');
                         context.read<AuthViewModel>().seleccionarRol('autorizador');
-                        AppLogger.navegacion('Rol autorizador seleccionado');
+                        AppLogger.accionUsuario('Rol autorizador seleccionado');
                       },
                     ),
                     const SizedBox(height: 8),
 
-                    // Rol: Vigilante (deshabilitado)
+                    // ── Rol: Vigilante (habilitado) ────────────────────────
                     _TarjetaRolWidget(
-                      icono: Icons.shield_rounded,
-                      colorIcono: AppColors.exitoVerde,
+                      icono:           Icons.shield_rounded,
+                      colorIcono:      AppColors.exitoVerde,
                       colorFondoIcono: const Color(0xFFD1FAE5),
-                      titulo: 'Vigilante',
-                      subtitulo: 'Seguridad',
-                      seleccionado: false,
-                      habilitado: false,
-                      onTap: () {},
+                      titulo:          'Vigilante',
+                      subtitulo:       'Seguridad',
+                      seleccionado:    _rolSeleccionado == 'vigilante',
+                      habilitado:      true,
+                      onTap: () {
+                        setState(() => _rolSeleccionado = 'vigilante');
+                        // El vigilante tiene su propio ViewModel; no se toca AuthViewModel
+                        AppLogger.accionUsuario('Rol vigilante seleccionado');
+                      },
                     ),
                   ],
                 ),
               ),
+
               const SizedBox(height: AppSpacing.md),
 
-              // Botón Iniciar sesión
+              // Botón Iniciar sesión — habilitado si hay cualquier rol seleccionado
               ElevatedButton(
-                onPressed: authVM.rolSeleccionado == 'autorizador' ||
-                        authVM.rolSeleccionado == 'solicitante'
-                    ? () => _navegarSegunRol(context, authVM.rolSeleccionado)
+                onPressed: _rolSeleccionado.isNotEmpty
+                    ? () => _navegarSegunRol(context, _rolSeleccionado)
                     : null,
                 child: const Text('Iniciar Sesión'),
-              ),
-              const SizedBox(height: AppSpacing.xs),
-              Text(
-                'Vigilante no está disponible en esta versión.',
-                style: tema.textTheme.labelMedium,
-                textAlign: TextAlign.center,
               ),
             ],
           ),
@@ -147,17 +166,24 @@ class SeleccionRolView extends StatelessWidget {
     );
   }
 
-  void _navegarSegunRol(BuildContext context, String? rol) {
-  switch (rol) {
-    case 'autorizador':
-    case 'solicitante':
-      AppLogger.navegacion(AppRoutes.login);
-      Navigator.pushNamed(context, AppRoutes.login);
-      break;
-    default:
-      break;
+  /// Navega a la pantalla de login correspondiente al rol elegido.
+  void _navegarSegunRol(BuildContext context, String rol) {
+    switch (rol) {
+      case 'autorizador':
+        AppLogger.navegacion(AppRoutes.loginAutorizador);
+        Navigator.pushNamed(context, AppRoutes.loginAutorizador);
+        break;
+      case 'solicitante':
+        AppLogger.navegacion(AppRoutes.dashboardSolicitante);
+        Navigator.pushNamed(context, AppRoutes.dashboardSolicitante);
+        break;
+      case 'vigilante':
+        // El vigilante va directamente a su propio login con validación de teléfono
+        AppLogger.navegacion(AppRoutes.loginVigilante);
+        Navigator.pushNamed(context, AppRoutes.loginVigilante);
+        break;
+    }
   }
-}
 }
 
 // =============================================================================
@@ -188,6 +214,7 @@ class _TarjetaRolWidget extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final tema = Theme.of(context);
+
     return Opacity(
       opacity: habilitado ? 1.0 : 0.45,
       child: InkWell(
@@ -210,6 +237,7 @@ class _TarjetaRolWidget extends StatelessWidget {
           ),
           child: Row(
             children: [
+              // Ícono del rol
               Container(
                 width: 44,
                 height: 44,
@@ -220,22 +248,27 @@ class _TarjetaRolWidget extends StatelessWidget {
                 child: Icon(icono, color: colorIcono, size: 22),
               ),
               const SizedBox(width: AppSpacing.sm),
+              // Texto
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(titulo, style: tema.textTheme.bodyMedium?.copyWith(
-                      color: AppColors.navyProfundo,
-                      fontWeight: FontWeight.w600,
-                    )),
+                    Text(
+                      titulo,
+                      style: tema.textTheme.bodyMedium?.copyWith(
+                        color:      AppColors.navyProfundo,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
                     Text(subtitulo, style: tema.textTheme.labelMedium),
                   ],
                 ),
               ),
+              // Radio de selección
               Radio<bool>(
-                value: true,
+                value:      true,
                 groupValue: seleccionado ? true : null,
-                onChanged: habilitado ? (_) => onTap() : null,
+                onChanged:  habilitado ? (_) => onTap() : null,
                 activeColor: AppColors.coralPrimario,
               ),
             ],

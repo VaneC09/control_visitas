@@ -42,6 +42,8 @@ dependencies:
   # Localización oficial
   flutter_localizations:
     sdk: flutter
+  # Escáner de código QR con cámara — Módulo Vigilante
+  mobile_scanner: ^6.0.0
 
 flutter:
   uses-material-design: true
