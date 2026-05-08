@@ -16,9 +16,15 @@ export 'package:control_visitas/features/autorizador/data/models/visitante_model
 // ---------------------------------------------------------------------------
 
 /// Modelo para catálogos (motivos de visita, lugares de encuentro).
+// Re-exporta modelo compartido
+export 'package:control_visitas/features/autorizador/data/models/solicitud_model.dart';
+
+// Visitante compartido
+export 'package:control_visitas/features/autorizador/data/models/visitante_model.dart';
+
 class CatalogoModel {
-  final String  id;
-  final String  nombre;
+  final String id;
+  final String nombre;
   final String? descripcion;
 
   const CatalogoModel({
@@ -29,8 +35,8 @@ class CatalogoModel {
 
   factory CatalogoModel.fromJson(Map<String, dynamic> json) {
     return CatalogoModel(
-      id:          json['id']?.toString()          ?? '',
-      nombre:      json['nombre']    as String?     ?? '',
+      id: json['id']?.toString() ?? '',
+      nombre: json['nombre'] as String? ?? '',
       descripcion: json['descripcion'] as String?,
     );
   }
