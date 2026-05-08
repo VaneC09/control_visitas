@@ -29,6 +29,9 @@
 	<key>LSRequiresIPhoneOS</key>
 	<true/>
 	<key>UIApplicationSceneManifest</key>
+	<key>NSFaceIDUsageDescription</key>
+	<string>Se usa para proteger el acceso seguro a la sesión.</string>
+
 	<dict>
 		<key>UIApplicationSupportsMultipleScenes</key>
 		<false/>

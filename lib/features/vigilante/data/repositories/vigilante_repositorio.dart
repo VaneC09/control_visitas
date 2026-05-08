@@ -6,253 +6,165 @@
 //              MODO DEMO: las llamadas HTTP están comentadas; se retornan
 //              datos de prueba para permitir navegación sin backend.
 // Autor      : Yadhira Anadanely Benitez Millan
-// Versión    : 1.0.0
-// Fecha      : 2026-04-27
+// Versión    : 2.0.0
+// Fecha      : 2026-05-07
 // =============================================================================
 
 import 'package:dio/dio.dart';
-import 'package:flutter_secure_storage/flutter_secure_storage.dart';
-
 import '../../../../core/errors/exceptions.dart';
+import '../../../../core/network/dio_client.dart';
+import '../../../../core/services/session_service.dart';
 import '../../../../core/utils/app_logger.dart';
 import '../models/resultado_escaneo_model.dart';
 import '../models/vigilante_model.dart';
 import '../models/visita_hoy_model.dart';
 
-/// Repositorio del módulo vigilante.
 class VigilanteRepositorio {
-  static const String _baseUrl    = 'http://192.168.1.100:8080/ca-backend/api';
-  static const String _claveToken = 'ca_access_token';
-  static const String _claveVig   = 'ca_vigilante_id';
+  final _dio     = DioClient.sam;
+  final _backend = DioClient.backend;
+  final _session = SessionService.instancia;
 
-  final FlutterSecureStorage _almacenamiento;
-  late final Dio _dio;
-
-  VigilanteRepositorio({FlutterSecureStorage? almacenamiento})
-      : _almacenamiento = almacenamiento ?? const FlutterSecureStorage() {
-    _dio = Dio(BaseOptions(
-      baseUrl: _baseUrl,
-      connectTimeout: const Duration(seconds: 10),
-      receiveTimeout: const Duration(seconds: 15),
-      headers: {'Content-Type': 'application/json'},
-    ));
-    _dio.interceptors.add(InterceptorsWrapper(
-      onRequest: (options, handler) async {
-        final token = await _almacenamiento.read(key: _claveToken);
-        if (token != null) options.headers['Authorization'] = 'Bearer $token';
-        AppLogger.http(options.method, options.path, null);
-        return handler.next(options);
-      },
-    ));
-  }
-
-  // ---------------------------------------------------------------------------
-  // Login del vigilante
-  // ---------------------------------------------------------------------------
-
-  /// Autentica al vigilante validando correo, contraseña y número de teléfono.
+  /// Login del vigilante en el SAM.
+  /// El SAM valida usuario, contraseña y que el teléfono esté registrado.
   Future<VigilanteModel> login(
-      String correo, String contrasena, String telefonoDispositivo) async {
-    // =========================================================================
-    // MODO DEMO — descomentar con backend real
-    // =========================================================================
-    // try {
-    //   final resp = await _dio.post('/auth/vigilante/login', data: {
-    //     'correo': correo, 'contrasena': contrasena,
-    //     'telefonoDispositivo': telefonoDispositivo,
-    //   });
-    //   final vigilante = VigilanteModel.fromJson(resp.data['vigilante']);
-    //   await _almacenamiento.write(key: _claveToken, value: resp.data['accessToken']);
-    //   await _almacenamiento.write(key: _claveVig, value: vigilante.idVigilante.toString());
-    //   return vigilante;
-    // } on DioException catch (e) {
-    //   if (e.response?.statusCode == 401) throw const AuthException('Credenciales inválidas o dispositivo no registrado.');
-    //   throw NetworkException('Sin conexión.', causa: e);
-    // }
-    // =========================================================================
+    String usuario, String contrasena, String telefono) async {
+    try {
+      final resp = await _dio.post('/auth/login', data: {
+        'usuario':           usuario.trim(),
+        'password':          contrasena,
+        'telefonoDispositivo': telefono.trim(),
+        'rol':               'vigilante',
+      });
 
-    AppLogger.info('VigilanteRepositorio', 'Login demo — correo: $correo');
-    await Future.delayed(const Duration(milliseconds: 700));
-    if (correo.isEmpty || contrasena.isEmpty) {
-      throw const AuthException('Ingresa usuario y contraseña.');
+      final data     = resp.data as Map<String, dynamic>;
+      final token    = data['token']     as String;
+      final empJson  = data['empleado']  as Map<String, dynamic>;
+      final vigilante = VigilanteModel.fromJson(empJson);
+
+      await _session.guardar(
+        token:      token,
+        idEmpleado: vigilante.idVigilante,
+        rol:        'vigilante',
+        nombre:     vigilante.nombreCompleto,
+      );
+      return vigilante;
+    } on DioException catch (e) {
+      if (e.response?.statusCode == 401) {
+        throw const AuthException(
+          'Credenciales incorrectas o dispositivo no registrado en el sistema.',
+        );
+      }
+      throw DioClient.mapearError(e);
     }
-    await _almacenamiento.write(key: _claveToken, value: 'demo_vigilante_token');
-    await _almacenamiento.write(key: _claveVig, value: '1');
-    return VigilanteModel(
-      idVigilante: 1, nombre: 'Joaquín', apellidoPaterno: 'Mora',
-      apellidoMaterno: 'Vega', numeroTelefono: telefonoDispositivo,
-      correo: correo,
-    );
   }
 
-  // ---------------------------------------------------------------------------
-  // Escanear QR
-  // ---------------------------------------------------------------------------
-
-  /// Envía el código QR al backend para validación y registro de entrada/salida.
+  /// Envía el código QR para validar acceso.
   Future<ResultadoEscaneoModel> escanear(String codigoQr) async {
-    // =========================================================================
-    // MODO DEMO
-    // =========================================================================
-    // try {
-    //   final resp = await _dio.post('/qr/scan', data: {'codigoQr': codigoQr});
-    //   return ResultadoEscaneoModel.fromJson(resp.data as Map<String,dynamic>);
-    // } on DioException catch (e) { throw _mapearError(e); }
-    // =========================================================================
-
-    AppLogger.info('VigilanteRepositorio', 'Escaneo demo — código: $codigoQr');
-    await Future.delayed(const Duration(milliseconds: 600));
-
-    // Demo: simular resultado válido de entrada
-    return ResultadoEscaneoModel(
-      estado:           EstadoEscaneo.validoEntrada,
-      mensaje:          'Código válido.',
-      horaActual:       DateTime.now().toIso8601String().substring(0, 19),
-      permiteProrroga:  false,
-      idQr:             1,
-      codigoQr:         codigoQr,
-      nombreVisitante:  'Juan Pérez García',
-      correoVisitante:  'juan.perez@email.com',
-      nombreAnfitrion:  'Ing. Roberto Sánchez',
-      departamento:     'Sistemas',
-      fechaVisita:      '26 mar 2026',
-      horaVisita:       '10:00',
-      toleranciaAntes:  15,
-      toleranciaDespues:15,
-      idRegistro:       null,
-      horaEntradaRegistrada: '',
-    );
+    try {
+      final idVigilante = await _session.leerEmpleadoId();
+      final resp = await _backend.post('/qr/scan', data: {
+        'codigoQr':    codigoQr,
+        'idVigilante': idVigilante,
+      });
+      AppLogger.accionUsuario('QR escaneado',
+          contexto: {'codigo': codigoQr});
+      return ResultadoEscaneoModel.fromJson(
+          resp.data as Map<String, dynamic>);
+    } on DioException catch (e) {
+      throw DioClient.mapearError(e);
+    }
   }
 
-  // ---------------------------------------------------------------------------
-  // Solicitar prórroga
-  // ---------------------------------------------------------------------------
+  /// Registra la entrada de un visitante.
+  Future<void> registrarEntrada(int idQr) async {
+    try {
+      final idVigilante = await _session.leerEmpleadoId();
+      await _backend.post('/registros/entrada', data: {
+        'idQr':        idQr,
+        'idVigilante': idVigilante,
+      });
+      AppLogger.accionUsuario('Entrada registrada',
+          contexto: {'idQr': idQr});
+    } on DioException catch (e) {
+      throw DioClient.mapearError(e);
+    }
+  }
 
-  /// Crea una solicitud de prórroga para un QR vencido. Retorna el idProrroga.
+  /// Registra la salida de un visitante.
+  Future<void> registrarSalida(int idQr) async {
+    try {
+      final idVigilante = await _session.leerEmpleadoId();
+      await _backend.post('/registros/salida', data: {
+        'idQr':        idQr,
+        'idVigilante': idVigilante,
+      });
+      AppLogger.accionUsuario('Salida registrada',
+          contexto: {'idQr': idQr});
+    } on DioException catch (e) {
+      throw DioClient.mapearError(e);
+    }
+  }
+
+  /// Solicita prórroga para QR vencido.
   Future<int> solicitarProrroga(int idQr) async {
-    // =========================================================================
-    // MODO DEMO
-    // =========================================================================
-    // try {
-    //   final resp = await _dio.post('/qr/$idQr/prorroga');
-    //   return resp.data['idProrroga'] as int;
-    // } on DioException catch (e) { throw _mapearError(e); }
-    // =========================================================================
-
-    AppLogger.info('VigilanteRepositorio', 'Prórroga demo solicitada para QR: $idQr');
-    await Future.delayed(const Duration(milliseconds: 500));
-    return 1001; // ID demo
+    try {
+      final resp = await _backend.post('/qr/$idQr/prorroga');
+      return resp.data['idProrroga'] as int;
+    } on DioException catch (e) {
+      throw DioClient.mapearError(e);
+    }
   }
 
-  /// Consulta el estado de una prórroga (polling cada ~5s).
+  /// Consulta estado de una prórroga (usado en polling).
   Future<String> consultarEstadoProrroga(int idProrroga) async {
-    // =========================================================================
-    // MODO DEMO
-    // =========================================================================
-    // try {
-    //   final resp = await _dio.get('/qr/prorroga/$idProrroga/estado');
-    //   return resp.data['estado'] as String;
-    // } on DioException catch (e) { throw _mapearError(e); }
-    // =========================================================================
-
-    await Future.delayed(const Duration(seconds: 3));
-    return 'pendiente'; // Demo siempre pendiente hasta timeout
+    try {
+      final resp = await _backend.get('/qr/prorroga/$idProrroga/estado');
+      return resp.data['estado'] as String;
+    } on DioException catch (e) {
+      throw DioClient.mapearError(e);
+    }
   }
 
-  // ---------------------------------------------------------------------------
-  // Visita espontánea
-  // ---------------------------------------------------------------------------
-
-  /// Registra un visitante walk-in y genera QR temporal.
+  /// Registra visita espontánea y genera QR temporal.
   Future<Map<String, dynamic>> registrarVisitaEspontanea({
     required String nombre,
     required String correo,
     required int    idDepartamento,
   }) async {
-    // =========================================================================
-    // MODO DEMO
-    // =========================================================================
-    // try {
-    //   final resp = await _dio.post('/visitas/espontanea', data: {
-    //     'nombre': nombre, 'correo': correo, 'idDepartamento': idDepartamento,
-    //   });
-    //   return resp.data as Map<String, dynamic>;
-    // } on DioException catch (e) { throw _mapearError(e); }
-    // =========================================================================
-
-    AppLogger.info('VigilanteRepositorio', 'Visita espontánea demo — correo: $correo');
-    await Future.delayed(const Duration(milliseconds: 800));
-    return {
-      'idQr':    9001,
-      'codigoQr':'WI-000001-0001-9999',
-      'mensaje': 'QR temporal generado. Se enviará al correo del visitante.',
-    };
+    try {
+      final idVigilante = await _session.leerEmpleadoId();
+      final resp = await _backend.post('/visitas/espontanea', data: {
+        'nombre':         nombre.isEmpty ? 'Visitante' : nombre,
+        'correo':         correo,
+        'idDepartamento': idDepartamento,
+        'idVigilante':    idVigilante,
+      });
+      AppLogger.accionUsuario('Visita espontánea registrada',
+          contexto: {'correo': correo});
+      return resp.data as Map<String, dynamic>;
+    } on DioException catch (e) {
+      throw DioClient.mapearError(e);
+    }
   }
 
-  // ---------------------------------------------------------------------------
-  // Visitas del día
-  // ---------------------------------------------------------------------------
-
-  /// Retorna la lista de visitas aprobadas para hoy.
+  /// Obtiene visitas aprobadas para hoy.
   Future<List<VisitaHoyModel>> obtenerVisitasHoy() async {
-    // =========================================================================
-    // MODO DEMO
-    // =========================================================================
-    // try {
-    //   final resp = await _dio.get('/visitas/hoy');
-    //   return (resp.data as List).map((j) => VisitaHoyModel.fromJson(j)).toList();
-    // } on DioException catch (e) { throw _mapearError(e); }
-    // =========================================================================
-
-    AppLogger.info('VigilanteRepositorio', 'Visitas hoy — demo');
-    await Future.delayed(const Duration(milliseconds: 600));
-    return [
-      VisitaHoyModel(
-        idSolicitud: 1, fechaInicio: '2026-04-27T10:00:00',
-        estadoSolicitud: 'aprobada', tipoSolicitud: 'agendada',
-        lugarEncuentro: 'Edificio A', nombreAnfitrion: 'Ing. Roberto Sánchez',
-        departamento: 'Sistemas', idQr: 1, codigoQr: 'VIS-2026-001234',
-        estadoQr: 'pendiente', nombreVisitante: 'Juan Pérez García',
-      ),
-      VisitaHoyModel(
-        idSolicitud: 2, fechaInicio: '2026-04-27T14:00:00',
-        estadoSolicitud: 'aprobada', tipoSolicitud: 'agendada',
-        lugarEncuentro: 'Edificio C', nombreAnfitrion: 'Lic. Ana Torres',
-        departamento: 'Recursos Humanos', idQr: 2, codigoQr: 'VIS-2026-001235',
-        estadoQr: 'pendiente', nombreVisitante: 'María López Sánchez',
-      ),
-      VisitaHoyModel(
-        idSolicitud: 3, fechaInicio: '2026-04-27T09:00:00',
-        estadoSolicitud: 'aprobada', tipoSolicitud: 'espontanea',
-        lugarEncuentro: 'Edificio B', nombreAnfitrion: 'Dr. Carlos Méndez',
-        departamento: 'Dirección', idQr: 3, codigoQr: 'WI-000003-0003-1234',
-        estadoQr: 'en_camino', nombreVisitante: 'Luis Ramírez Ortiz',
-      ),
-    ];
+    try {
+      final resp = await _backend.get('/visitas/hoy');
+      return (resp.data as List)
+          .map((j) => VisitaHoyModel.fromJson(j as Map<String, dynamic>))
+          .toList();
+    } on DioException catch (e) {
+      throw DioClient.mapearError(e);
+    }
   }
-
-  // ---------------------------------------------------------------------------
-  // Cerrar sesión
-  // ---------------------------------------------------------------------------
 
   Future<void> logout() async {
-    await _almacenamiento.delete(key: _claveToken);
-    await _almacenamiento.delete(key: _claveVig);
-    AppLogger.info('VigilanteRepositorio', 'Sesión vigilante cerrada');
-  }
-
-  // ---------------------------------------------------------------------------
-  // Mapeo de errores
-  // ---------------------------------------------------------------------------
-
-  Exception _mapearError(DioException e) {
-    if (e.type == DioExceptionType.connectionError ||
-        e.type == DioExceptionType.connectionTimeout) {
-      return NetworkException('Sin conexión al servidor.', causa: e);
+    try {
+      await _dio.post('/auth/logout');
+    } catch (_) {} finally {
+      await _session.cerrarSesion();
     }
-    if (e.response?.statusCode == 401) {
-      return const AuthException('Sesión expirada. Inicia sesión nuevamente.');
-    }
-    return ServerException('Error del servidor.', codigoHttp: e.response?.statusCode);
   }
 }
+

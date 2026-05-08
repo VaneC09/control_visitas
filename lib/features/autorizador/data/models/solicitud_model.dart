@@ -17,7 +17,7 @@ class SolicitudModel {
   final String fechaInicio;
   final int    toleranciaAntes;
   final int    toleranciaDespues;
-  final bool   prorrogaToleran;
+  final bool   prorrogaTolerancia;
   final String observaciones;
   final String fechaCreacion;
   final String estado;
@@ -37,7 +37,7 @@ class SolicitudModel {
     required this.fechaInicio,
     required this.toleranciaAntes,
     required this.toleranciaDespues,
-    required this.prorrogaToleran,
+    required this.prorrogaTolerancia,
     required this.observaciones,
     required this.fechaCreacion,
     required this.estado,
@@ -71,7 +71,7 @@ class SolicitudModel {
       fechaInicio:             json['fechaInicio']            as String? ?? '',
       toleranciaAntes:         json['toleranciaAntes']        as int? ?? 15,
       toleranciaDespues:       json['toleranciaDespues']      as int? ?? 15,
-      prorrogaToleran:         json['prorrogaToleran']        as bool? ?? false,
+      prorrogaTolerancia:         json['prorrogaToleran']        as bool? ?? false,
       observaciones:           json['observaciones']          as String? ?? '',
       fechaCreacion:           json['fechaCreacion']          as String? ?? '',
       estado:                  json['estado']                 as String? ?? '',
@@ -97,7 +97,7 @@ class SolicitudModel {
     'fechaInicio':             fechaInicio,
     'toleranciaAntes':         toleranciaAntes,
     'toleranciaDespues':       toleranciaDespues,
-    'prorrogaToleran':         prorrogaToleran,
+    'prorrogaTolerancia':      prorrogaTolerancia,
     'observaciones':           observaciones,
     'fechaCreacion':           fechaCreacion,
     'estado':                  estado,

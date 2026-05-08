@@ -85,3 +85,26 @@ class ConcurrenciaException implements Exception {
   @override
   String toString() => 'ConcurrenciaException: $mensaje';
 }
+
+/// Acceso denegado por roles o permisos insuficientes (403).
+class PermisosException implements Exception {
+  final String mensaje;
+  const PermisosException(this.mensaje);
+  @override
+  String toString() => 'PermisosException: $mensaje';
+}
+
+/// El recurso solicitado no existe (404).
+class NoEncontradoException implements Exception {
+  final String mensaje;
+  const NoEncontradoException(this.mensaje);
+  @override
+  String toString() => 'NoEncontradoException: $mensaje';
+}
+
+/// Dispositivo sin conexión a Internet.
+class SinConexionException implements Exception {
+  const SinConexionException();
+  @override
+  String toString() => 'SinConexionException: Sin acceso a Internet';
+}

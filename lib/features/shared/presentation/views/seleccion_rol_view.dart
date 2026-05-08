@@ -4,7 +4,7 @@
 // Descripción: Pantalla 0 — Selección del tipo de usuario antes del login.
 //              Los tres roles están habilitados en esta versión.
 // Autor      : Yadhira Anadanely Benitez Millan
-// Versión    : 1.2.0
+// Versión    : 1.3.0
 // Fecha      : 2026-04-27
 // Cambios    : v1.1.0 — Solicitante habilitado
 //              v1.2.0 — Vigilante habilitado; rutas corregidas a loginAutorizador
@@ -12,6 +12,7 @@
 //                       para el rol vigilante (tiene su propio VigilanteViewModel)
 // =============================================================================
 
+import 'package:control_visitas/core/services/session_service.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
@@ -33,6 +34,38 @@ class _SeleccionRolViewState extends State<SeleccionRolView> {
   /// El rol seleccionado se gestiona localmente para no mezclar
   /// el AuthViewModel del autorizador con el rol vigilante.
   String _rolSeleccionado = '';
+
+@override
+void initState() {
+  super.initState();
+  WidgetsBinding.instance.addPostFrameCallback((_) {
+    _verificarSesionActiva();
+  });
+}
+
+Future<void> _verificarSesionActiva() async {
+  final session = SessionService.instancia;
+  final haySession = await session.haySesionActiva();
+  if (!haySession || !mounted) return;
+
+  final rol = await session.leerRol();
+  if (!mounted) return;
+
+  switch (rol) {
+    case 'autorizador':
+      Navigator.pushNamedAndRemoveUntil(
+          context, AppRoutes.bandeja, (_) => false);
+      break;
+    case 'solicitante':
+      Navigator.pushNamedAndRemoveUntil(
+          context, AppRoutes.dashboardSolicitante, (_) => false);
+      break;
+    case 'vigilante':
+      Navigator.pushNamedAndRemoveUntil(
+          context, AppRoutes.homeVigilante, (_) => false);
+      break;
+  }
+}
 
   @override
   Widget build(BuildContext context) {
@@ -278,3 +311,4 @@ class _TarjetaRolWidget extends StatelessWidget {
     );
   }
 }
+
