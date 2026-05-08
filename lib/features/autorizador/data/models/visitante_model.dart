@@ -1,31 +1,32 @@
 // =============================================================================
 // Archivo    : visitante_model.dart
 // Módulo     : features/autorizador/data/models
-// Descripción: Modelo de visitante externo con serialización JSON.
-// Autor      : Yadhira Anadanely Benitez Millan
-// Versión    : 1.0.0
-// Fecha      : 2026-04-25
+// Ruta       : lib/features/autorizador/data/models/visitante_model.dart
+//
+// CORRECCIÓN: idVisitante ahora es opcional (int? con default 0)
+//             para poder crear instancias vacías en el wizard sin pasar el id.
 // =============================================================================
 
-/// Persona externa que visita la institución.
 class VisitanteModel {
-  final int    idVisitante;
+  final int    idVisitante;   // 0 = visitante nuevo sin id aún
   final String nombre;
   final String apellidos;
   final String correoPersonal;
 
   const VisitanteModel({
-    required this.idVisitante,
+    this.idVisitante = 0,     // ← CORRECCIÓN: opcional con default 0
     required this.nombre,
     required this.apellidos,
     required this.correoPersonal,
   });
 
+  String get nombreCompleto => '$nombre $apellidos'.trim();
+
   factory VisitanteModel.fromJson(Map<String, dynamic> json) => VisitanteModel(
-    idVisitante:   json['idVisitante']   as int?    ?? 0,
-    nombre:        json['nombre']        as String? ?? '',
-    apellidos:     json['apellidos']     as String? ?? '',
-    correoPersonal:json['correoPersonal']as String? ?? '',
+    idVisitante:    json['idVisitante']    as int?    ?? 0,
+    nombre:         json['nombre']         as String? ?? '',
+    apellidos:      json['apellidos']      as String? ?? '',
+    correoPersonal: json['correoPersonal'] as String? ?? '',
   );
 
   Map<String, dynamic> toJson() => {
@@ -34,7 +35,4 @@ class VisitanteModel {
     'apellidos':      apellidos,
     'correoPersonal': correoPersonal,
   };
-
-  /// Nombre completo del visitante.
-  String get nombreCompleto => '$nombre $apellidos';
 }

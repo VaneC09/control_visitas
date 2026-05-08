@@ -13,6 +13,9 @@ export 'bloc/solicitante_provider.dart';
 // Data - Models
 export 'data/models/solicitud_model.dart';
 
+// VisitanteModel
+export 'package:control_visitas/features/autorizador/data/models/visitante_model.dart';
+
 // Data - Repositories
 export 'data/repositories/solicitante_repositorio.dart';
 

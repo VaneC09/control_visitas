@@ -9,102 +9,77 @@
 // Fecha      : 2026-04-25
 // =============================================================================
 
-// ---------------------------------------------------------------------------
-// Errores de red y conectividad
-// Cubre: timeout, sin conexión, DNS no resuelto, TLS inválido.
-// ---------------------------------------------------------------------------
 
-/// Fallo en la capa de transporte de red.
+// ── Red / Conectividad ──────────────────────────────────────────────────────
 class NetworkException implements Exception {
   final String mensaje;
   final Object? causa;
-
   const NetworkException(this.mensaje, {this.causa});
-
   @override
   String toString() => 'NetworkException: $mensaje';
 }
-
-// ---------------------------------------------------------------------------
-// Errores de servidor (5xx)
-// Cubre: servidor caído, error interno, servicio no disponible.
-// ---------------------------------------------------------------------------
-
-/// Fallo en la capa de infraestructura remota (respuestas 5xx).
+ 
+// ── Servidor 5xx ────────────────────────────────────────────────────────────
 class ServerException implements Exception {
   final String mensaje;
   final int? codigoHttp;
-
   const ServerException(this.mensaje, {this.codigoHttp});
-
   @override
   String toString() => 'ServerException[$codigoHttp]: $mensaje';
 }
-
-// ---------------------------------------------------------------------------
-// Errores de validación de negocio (400 / 422)
-// Cubre: reglas de negocio no cumplidas o formato incorrecto.
-// ---------------------------------------------------------------------------
-
-/// Fallo de regla de negocio o formato de datos.
+ 
+// ── Validación de negocio (400 / 422) ───────────────────────────────────────
 class ValidationException implements Exception {
   final String mensaje;
   final Map<String, String>? erroresCampo;
-
   const ValidationException(this.mensaje, {this.erroresCampo});
-
   @override
   String toString() => 'ValidationException: $mensaje';
 }
-
-// ---------------------------------------------------------------------------
-// Errores de autenticación y sesión (401 / 403)
-// Cubre: token expirado, credenciales inválidas, sesión cerrada.
-// ---------------------------------------------------------------------------
-
-/// Fallo de identidad o autorización.
+ 
+// ── Autenticación / Sesión (401 / 403) ──────────────────────────────────────
 class AuthException implements Exception {
   final String mensaje;
-
   const AuthException(this.mensaje);
-
   @override
   String toString() => 'AuthException: $mensaje';
 }
-
-// ---------------------------------------------------------------------------
-// Error de concurrencia — solicitud ya procesada (409)
-// ---------------------------------------------------------------------------
-
-/// La solicitud fue procesada por otro autorizador concurrentemente.
+ 
+// ── Concurrencia: ya procesado (409) ────────────────────────────────────────
 class ConcurrenciaException implements Exception {
   final String mensaje;
-
   const ConcurrenciaException(this.mensaje);
-
   @override
   String toString() => 'ConcurrenciaException: $mensaje';
 }
-
-/// Acceso denegado por roles o permisos insuficientes (403).
+ 
+// ── Permisos insuficientes (403) ─────────────────────────────────────────────
 class PermisosException implements Exception {
   final String mensaje;
   const PermisosException(this.mensaje);
   @override
   String toString() => 'PermisosException: $mensaje';
 }
-
-/// El recurso solicitado no existe (404).
+ 
+// ── Recurso no encontrado (404) ──────────────────────────────────────────────
 class NoEncontradoException implements Exception {
   final String mensaje;
   const NoEncontradoException(this.mensaje);
   @override
   String toString() => 'NoEncontradoException: $mensaje';
 }
-
-/// Dispositivo sin conexión a Internet.
+ 
+// ── Sin conexión a internet ──────────────────────────────────────────────────
 class SinConexionException implements Exception {
   const SinConexionException();
   @override
   String toString() => 'SinConexionException: Sin acceso a Internet';
+}
+ 
+// ── Visitante vetado (lista de exclusión) ────────────────────────────────────
+class VetoException implements Exception {
+  final String mensaje;
+  const VetoException(this.mensaje);
+  @override
+  String toString() => 'VetoException: $mensaje';
 }

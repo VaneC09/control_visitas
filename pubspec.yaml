@@ -46,6 +46,15 @@ dependencies:
   # Escáner de código QR con cámara — Módulo Vigilante
   mobile_scanner: ^6.0.0
 
+  # SQLite local (puente sin Laravel)
+  sqflite: ^2.3.3+1
+  path: ^1.9.0
+
+  # Para sincronización futura y caché de imágenes de visitantes
+  shared_preferences: ^2.3.2
+  qr_flutter: ^4.1.0
+ 
+
 flutter:
   uses-material-design: true
 

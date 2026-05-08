@@ -1,95 +1,52 @@
 // =============================================================================
 // Archivo    : auth_viewmodel.dart
 // Módulo     : features/autorizador/bloc
-// Descripción: ViewModel de autenticación. Gestiona el estado del login,
-//              validación de formulario y ciclo de sesión.
-//              Patrón MVVM con Provider.
-// Autor      : Yadhira Anadanely Benitez Millan
-// Versión    : 1.0.0
-// Fecha      : 2026-04-25
+// Ruta       : lib/features/autorizador/bloc/auth_viewmodel.dart
 // =============================================================================
 
 import 'package:flutter/material.dart';
 
-import '../../../../core/errors/exceptions.dart';
-import '../../../../core/utils/app_logger.dart';
-import '../data/repositories/auth_repositorio.dart';
+import 'package:control_visitas/core/errors/exceptions.dart';
+import 'package:control_visitas/core/services/session_service.dart';
+import 'package:control_visitas/core/utils/app_logger.dart';
+import 'package:control_visitas/features/autorizador/data/repositories/auth_repositorio_local.dart';
 
-/// Estados posibles del proceso de autenticación.
-enum EstadoAuth {
-  inicial,
-  cargando,
-  autenticado,
-  error,
-}
+enum EstadoAuth { inicial, cargando, autenticado, error }
 
-/// ViewModel de autenticación.
-/// La vista escucha cambios vía [Consumer<AuthViewModel>] o [context.watch].
 class AuthViewModel extends ChangeNotifier {
-  // ---------------------------------------------------------------------------
-  // Dependencias
-  // ---------------------------------------------------------------------------
+  final AuthRepositorioLocal _repositorio;
 
-  final AuthRepositorio _repositorio;
-
-  // ---------------------------------------------------------------------------
-  // Estado observable
-  // ---------------------------------------------------------------------------
-
-  EstadoAuth _estado = EstadoAuth.inicial;
-  EstadoAuth get estado => _estado;
-
+  EstadoAuth     _estado            = EstadoAuth.inicial;
+  EstadoAuth     get estado         => _estado;
   EmpleadoSesion? _empleado;
-  EmpleadoSesion? get empleado => _empleado;
+  EmpleadoSesion? get empleado      => _empleado;
+  String          _mensajeError     = '';
+  String          get mensajeError  => _mensajeError;
+  bool            _ocultarContrasena = true;
+  bool            get ocultarContrasena => _ocultarContrasena;
+  String          _rolSeleccionado  = '';
+  String          get rolSeleccionado => _rolSeleccionado;
 
-  String _mensajeError = '';
-  String get mensajeError => _mensajeError;
+  AuthViewModel({AuthRepositorioLocal? repositorio})
+      : _repositorio = repositorio ?? AuthRepositorioLocal();
 
-  /// Controla visibilidad de la contraseña en el campo de texto.
-  bool _ocultarContrasena = true;
-  bool get ocultarContrasena => _ocultarContrasena;
-
-  /// Rol seleccionado en la pantalla de selección de rol.
-  String _rolSeleccionado = '';
-  String get rolSeleccionado => _rolSeleccionado;
-
-  // ---------------------------------------------------------------------------
-  // Constructor
-  // ---------------------------------------------------------------------------
-
-  AuthViewModel({AuthRepositorio? repositorio})
-      : _repositorio = repositorio ?? AuthRepositorio();
-
-  // ---------------------------------------------------------------------------
-  // Acciones
-  // ---------------------------------------------------------------------------
-
-  /// Alterna visibilidad del campo contraseña.
   void alternarVisibilidadContrasena() {
     _ocultarContrasena = !_ocultarContrasena;
     notifyListeners();
-    AppLogger.accionUsuario('Visibilidad contraseña alternada');
   }
 
-  /// Establece el rol seleccionado antes del login.
   void seleccionarRol(String rol) {
     _rolSeleccionado = rol;
-    AppLogger.accionUsuario('Rol seleccionado', contexto: {'rol': rol});
     notifyListeners();
   }
 
-  /// Ejecuta el proceso de login completo.
-  ///
-  /// Valida campos, llama al repositorio y actualiza el estado.
-  /// [onExito] se ejecuta si el login fue correcto (para navegar).
   Future<void> login({
     required String correo,
     required String contrasena,
     required VoidCallback onExito,
   }) async {
-    // Validación básica antes de llamar a la red
     if (correo.trim().isEmpty || contrasena.isEmpty) {
-      _mensajeError = 'Ingresa tu correo y contraseña';
+      _mensajeError = 'Ingresa tu usuario y contraseña.';
       _estado = EstadoAuth.error;
       notifyListeners();
       return;
@@ -100,40 +57,63 @@ class AuthViewModel extends ChangeNotifier {
     notifyListeners();
 
     try {
-      AppLogger.accionUsuario('Intento de login', contexto: {'correo': correo});
+      AppLogger.accionUsuario('Login iniciado', contexto: {'usuario': correo});
       _empleado = await _repositorio.login(correo.trim(), contrasena);
-      _estado = EstadoAuth.autenticado;
+      _estado   = EstadoAuth.autenticado;
       notifyListeners();
       onExito();
     } on AuthException catch (e) {
       _mensajeError = e.mensaje;
       _estado = EstadoAuth.error;
-      AppLogger.warning('AuthViewModel', 'Login fallido: ${e.mensaje}');
       notifyListeners();
     } on NetworkException catch (e) {
       _mensajeError = e.mensaje;
       _estado = EstadoAuth.error;
-      AppLogger.error('AuthViewModel', 'Error de red en login', e);
       notifyListeners();
     } catch (e) {
       _mensajeError = 'Error inesperado. Intenta de nuevo.';
       _estado = EstadoAuth.error;
-      AppLogger.error('AuthViewModel', 'Error no controlado en login', e);
+      AppLogger.error('AuthViewModel', 'Error no controlado', e);
       notifyListeners();
     }
   }
 
-  /// Cierra la sesión del empleado autenticado.
+  /// Restaura la sesión desde SecureStorage (usado al iniciar la app).
+  Future<void> restaurarSesion() async {
+    final session   = SessionService.instancia;
+    final haySession = await session.haySesionActiva();
+    if (!haySession) return;
+
+    final rol    = await session.leerRol()    ?? '';
+    final nombre = await session.leerNombre() ?? '';
+    final idEmp  = await session.leerEmpleadoId() ?? 0;
+
+    _empleado = EmpleadoSesion(
+      idEmpleado:      idEmp,
+      nombre:          nombre,
+      apellidoPaterno: '',
+      apellidoMaterno: '',
+      correo:          '',
+      rol:             rol,
+      departamento:    '',
+      idDepartamento:  0,
+      idPuesto:        0,
+      idJefe:          0,
+    );
+    _rolSeleccionado = rol;
+    _estado = EstadoAuth.autenticado;
+    notifyListeners();
+  }
+
   Future<void> logout() async {
-    AppLogger.accionUsuario('Logout iniciado');
+    AppLogger.accionUsuario('Logout');
     await _repositorio.logout();
-    _empleado = null;
-    _estado = EstadoAuth.inicial;
+    _empleado        = null;
+    _estado          = EstadoAuth.inicial;
     _rolSeleccionado = '';
     notifyListeners();
   }
 
-  /// Limpia el mensaje de error para permitir reintento.
   void limpiarError() {
     _mensajeError = '';
     _estado = EstadoAuth.inicial;

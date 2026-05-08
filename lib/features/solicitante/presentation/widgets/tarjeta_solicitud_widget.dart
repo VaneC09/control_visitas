@@ -1,25 +1,25 @@
 // =============================================================================
-// Archivo: tarjeta_solicitud_widget.dart
-// Módulo: solicitante/presentation/widgets
-// Descripción: Widget reutilizable de tarjeta para mostrar una solicitud.
-// Autor: OMEGA Solutions
-// Versión: 1.0
-// Fecha: 2026-04-26
+// Archivo    : tarjeta_solicitud_widget.dart
+// Módulo     : features/solicitante/presentation/widgets
+// Ruta       : lib/features/solicitante/presentation/widgets/tarjeta_solicitud_widget.dart
+//
+// CORRECCIÓN: solicitud.idEstadoSolicitud → solicitud.estado
 // =============================================================================
 
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
-import '../../data/models/solicitud_model.dart';
+
+import 'package:control_visitas/core/config/app_colors.dart';
+import 'package:control_visitas/features/autorizador/data/models/solicitud_model.dart';
 
 /// Badge de estado de una solicitud.
 class EstadoBadgeWidget extends StatelessWidget {
   final String estado;
-
   const EstadoBadgeWidget({super.key, required this.estado});
 
   @override
   Widget build(BuildContext context) {
-    final config = _obtenerConfigEstado(estado);
+    final config = _config(estado);
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
       decoration: BoxDecoration(
@@ -44,7 +44,9 @@ class EstadoBadgeWidget extends StatelessWidget {
     );
   }
 
-  _EstadoConfig _obtenerConfigEstado(String estado) {
+  _EstadoConfig _config(String estado) {
+    // CORRECCIÓN: compara contra nombres de estado ('pendiente', 'aprobada', etc.)
+    // ya no usa 'idEstadoSolicitud' sino el campo 'estado' del modelo unificado
     switch (estado.toLowerCase()) {
       case 'aprobada':
         return _EstadoConfig(
@@ -97,7 +99,7 @@ class _EstadoConfig {
   });
 }
 
-/// Tarjeta de solicitud de visita.
+/// Tarjeta de solicitud de visita para el dashboard del solicitante.
 class TarjetaSolicitudWidget extends StatelessWidget {
   final SolicitudModel solicitud;
   final VoidCallback? onTap;
@@ -118,7 +120,8 @@ class TarjetaSolicitudWidget extends StatelessWidget {
 
     final primerVisitante =
         solicitud.visitantes.isNotEmpty ? solicitud.visitantes.first : null;
-    final nombreVisitante = primerVisitante?.nombreCompleto ?? 'Visitante';
+    final nombreVisitante =
+        primerVisitante?.nombreCompleto ?? 'Sin visitante';
     final esGrupal = solicitud.visitantes.length > 1;
 
     return GestureDetector(
@@ -156,17 +159,15 @@ class TarjetaSolicitudWidget extends StatelessWidget {
                     overflow: TextOverflow.ellipsis,
                   ),
                 ),
-                EstadoBadgeWidget(estado: solicitud.idEstadoSolicitud),
+                // CORRECCIÓN: usa solicitud.estado (campo String del modelo unificado)
+                EstadoBadgeWidget(estado: solicitud.estado),
               ],
             ),
-            if (solicitud.descripcionMotivo != null) ...[
+            if (solicitud.motivoVisita.isNotEmpty) ...[
               const SizedBox(height: 4),
               Text(
-                solicitud.descripcionMotivo!,
-                style: TextStyle(
-                  fontSize: 13,
-                  color: Colors.grey[600],
-                ),
+                solicitud.motivoVisita,
+                style: TextStyle(fontSize: 13, color: Colors.grey[600]),
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
               ),
@@ -184,6 +185,21 @@ class TarjetaSolicitudWidget extends StatelessWidget {
                 const SizedBox(width: 4),
                 Text(horaFmt,
                     style: TextStyle(fontSize: 13, color: Colors.grey[600])),
+                if (solicitud.lugarEncuentro.isNotEmpty) ...[
+                  const SizedBox(width: 16),
+                  Icon(Icons.location_on_outlined,
+                      size: 14, color: Colors.grey[500]),
+                  const SizedBox(width: 4),
+                  Expanded(
+                    child: Text(
+                      solicitud.lugarEncuentro,
+                      style:
+                          TextStyle(fontSize: 13, color: Colors.grey[600]),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                ],
               ],
             ),
           ],

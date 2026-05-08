@@ -1,252 +1,197 @@
 // =============================================================================
-// Archivo: solicitante_provider.dart
-// Módulo: solicitante/bloc
-// Descripción: ViewModel/Provider que gestiona el estado del módulo solicitante.
-// Autor: Vanessa Fernanda Colin Gerardo
-// Versión: 1.0
-// Fecha: 2026-04-26
+// Archivo    : solicitante_provider.dart
+// Módulo     : features/solicitante/bloc
+// Ruta       : lib/features/solicitante/bloc/solicitante_provider.dart
+//
+// CORRECCIONES:
+//   1. Import con ruta de paquete absoluta
+//   2. Tipo 'SolicitudRepositorioLocal' con S mayúscula
+//   3. Campo 's.estado' (String) en lugar de 's.idEstadoSolicitud'
+//   4. SessionService.instancia (static final, no const)
 // =============================================================================
 
 import 'package:flutter/material.dart';
-import '../data/models/solicitud_model.dart';
-import '../data/repositories/solicitante_repositorio.dart';
 
-/// Estados posibles de carga.
+import 'package:control_visitas/core/errors/exceptions.dart';
+import 'package:control_visitas/core/services/session_service.dart';
+import 'package:control_visitas/core/utils/app_logger.dart';
+import 'package:control_visitas/features/autorizador/data/repositories/solicitud_repositorio_local.dart';
+import 'package:control_visitas/features/autorizador/data/models/solicitud_model.dart';
+import 'package:control_visitas/features/autorizador/data/models/visitante_model.dart';
+import 'package:control_visitas/features/solicitante/data/models/solicitud_model.dart';
+
+
 enum EstadoCarga { inicial, cargando, exito, error }
 
-/// Provider que gestiona el estado del módulo Solicitante (MVVM ViewModel).
 class SolicitanteProvider extends ChangeNotifier {
-  final SolicitanteRepositorio _repositorio;
+  final SolicitudRepositorioLocal _repo;
+  final SessionService _session;
 
-  SolicitanteProvider() : _repositorio = SolicitanteRepositorio();
+  SolicitanteProvider()
+      : _repo    = SolicitudRepositorioLocal(),
+        _session = SessionService.instancia;
 
-  // ---------------------------------------------------------------------------
-  // Estado - Listado de solicitudes
-  // ---------------------------------------------------------------------------
-  EstadoCarga _estadoLista = EstadoCarga.inicial;
+  // ── Listado ───────────────────────────────────────────────────────────────
+  EstadoCarga          _estadoLista = EstadoCarga.inicial;
   List<SolicitudModel> _solicitudes = [];
-  String _errorLista = '';
+  String               _errorLista  = '';
+  EstadoCarga          get estadoLista  => _estadoLista;
+  List<SolicitudModel> get solicitudes  => _solicitudes;
+  String               get errorLista   => _errorLista;
 
-  EstadoCarga get estadoLista => _estadoLista;
-  List<SolicitudModel> get solicitudes => _solicitudes;
-  String get errorLista => _errorLista;
-
+  // CORRECCIÓN: s.estado es el campo String con el nombre del estado
   List<SolicitudModel> get proximasVisitas => _solicitudes
       .where((s) =>
-          s.idEstadoSolicitud == 'aprobada' &&
+          s.estado == 'aprobada' &&
           DateTime.tryParse(s.fechaInicio)?.isAfter(DateTime.now()) == true)
       .toList();
 
   List<SolicitudModel> get todasSolicitudes => _solicitudes;
 
-  // ---------------------------------------------------------------------------
-  // Estado - Detalle
-  // ---------------------------------------------------------------------------
-  EstadoCarga _estadoDetalle = EstadoCarga.inicial;
+  // ── Detalle ───────────────────────────────────────────────────────────────
+  EstadoCarga     _estadoDetalle    = EstadoCarga.inicial;
   SolicitudModel? _solicitudDetalle;
-  String _errorDetalle = '';
-
-  EstadoCarga get estadoDetalle => _estadoDetalle;
+  String          _errorDetalle     = '';
+  EstadoCarga     get estadoDetalle    => _estadoDetalle;
   SolicitudModel? get solicitudDetalle => _solicitudDetalle;
-  String get errorDetalle => _errorDetalle;
+  String          get errorDetalle     => _errorDetalle;
 
-  // ---------------------------------------------------------------------------
-  // Estado - Nueva solicitud (wizard 3 pasos)
-  // ---------------------------------------------------------------------------
-  int _pasoActual = 0;
-  String _tipoVisita = 'individual';
+  // ── Visitantes frecuentes ─────────────────────────────────────────────────
+  List<Map<String, dynamic>> _visitantesFrecuentes = [];
+  List<Map<String, dynamic>> get visitantesFrecuentes => _visitantesFrecuentes;
+
+  // ── Wizard ────────────────────────────────────────────────────────────────
+  int    _pasoActual        = 0;
+  String _tipoVisita        = 'individual';
   List<VisitanteModel> _visitantes = [
     const VisitanteModel(nombre: '', apellidos: '', correoPersonal: ''),
   ];
-  String _motivoVisita = '';
-  String _lugarEncuentro = '';
-  DateTime? _fechaVisita;
+  String     _motivoVisita      = '';
+  String     _lugarEncuentro    = '';
+  DateTime?  _fechaVisita;
   TimeOfDay? _horaVisita;
-  int _toleranciaMinutos = 15;
-  bool _enviando = false;
-  String _errorCrear = '';
-  bool _creacionExitosa = false;
+  int    _toleranciaMinutos = 15;
+  bool   _enviando          = false;
+  String _errorCrear        = '';
+  bool   _creacionExitosa   = false;
 
-  int get pasoActual => _pasoActual;
-  String get tipoVisita => _tipoVisita;
+  int          get pasoActual        => _pasoActual;
+  String       get tipoVisita        => _tipoVisita;
   List<VisitanteModel> get visitantes => _visitantes;
-  String get motivoVisita => _motivoVisita;
-  String get lugarEncuentro => _lugarEncuentro;
-  DateTime? get fechaVisita => _fechaVisita;
-  TimeOfDay? get horaVisita => _horaVisita;
-  int get toleranciaMinutos => _toleranciaMinutos;
-  bool get enviando => _enviando;
-  String get errorCrear => _errorCrear;
-  bool get creacionExitosa => _creacionExitosa;
+  String       get motivoVisita      => _motivoVisita;
+  String       get lugarEncuentro    => _lugarEncuentro;
+  DateTime?    get fechaVisita       => _fechaVisita;
+  TimeOfDay?   get horaVisita        => _horaVisita;
+  int          get toleranciaMinutos => _toleranciaMinutos;
+  bool         get enviando          => _enviando;
+  String       get errorCrear        => _errorCrear;
+  bool         get creacionExitosa   => _creacionExitosa;
 
-  // ---------------------------------------------------------------------------
-  // Estado - Catálogos
-  // ---------------------------------------------------------------------------
+  // ── Catálogos ─────────────────────────────────────────────────────────────
   List<CatalogoModel> _motivos = [];
   List<CatalogoModel> _lugares = [];
-
   List<CatalogoModel> get motivos => _motivos;
   List<CatalogoModel> get lugares => _lugares;
 
-  // ---------------------------------------------------------------------------
-  // Acciones - Listado
-  // ---------------------------------------------------------------------------
+  // ══════════════════════════════════════════════════════════════════════════
+  // LISTADO
+  // ══════════════════════════════════════════════════════════════════════════
 
-  /// Carga las solicitudes del solicitante (datos mock para desarrollo).
   Future<void> cargarSolicitudes() async {
     _estadoLista = EstadoCarga.cargando;
-    _errorLista = '';
+    _errorLista  = '';
     notifyListeners();
-
-    await Future.delayed(const Duration(milliseconds: 400));
-
-    _solicitudes = [
-      SolicitudModel(
-        idSolicitud: 1,
-        fechaInicio: DateTime.now()
-            .add(const Duration(days: 1))
-            .toIso8601String(),
-        toleranciaAntes: 15,
-        toleranciaDespues: 15,
-        prorrogaTolerancias: false,
-        idEstadoSolicitud: 'aprobada',
-        nombreEstado: 'Autorizada',
-        idTipoSolicitud: '1',
-        idLugarEncuentro: '1',
-        idMotivoVisita: '1',
-        descripcionMotivo: 'Reunión de proyecto',
-        visitantes: const [
-          VisitanteModel(
-            idVisitante: 1,
-            nombre: 'Juan',
-            apellidos: 'Pérez García',
-            correoPersonal: 'juan@correo.com',
-          ),
-        ],
-      ),
-      SolicitudModel(
-        idSolicitud: 2,
-        fechaInicio: DateTime.now()
-            .add(const Duration(days: 2))
-            .toIso8601String(),
-        toleranciaAntes: 15,
-        toleranciaDespues: 15,
-        prorrogaTolerancias: false,
-        idEstadoSolicitud: 'pendiente',
-        nombreEstado: 'Pendiente',
-        idTipoSolicitud: '1',
-        idLugarEncuentro: '1',
-        idMotivoVisita: '2',
-        descripcionMotivo: 'Entrevista laboral',
-        visitantes: const [
-          VisitanteModel(
-            idVisitante: 2,
-            nombre: 'María',
-            apellidos: 'López Sánchez',
-            correoPersonal: 'maria@correo.com',
-          ),
-        ],
-      ),
-      SolicitudModel(
-        idSolicitud: 3,
-        fechaInicio: DateTime.now()
-            .subtract(const Duration(days: 1))
-            .toIso8601String(),
-        toleranciaAntes: 15,
-        toleranciaDespues: 15,
-        prorrogaTolerancias: false,
-        idEstadoSolicitud: 'cancelada',
-        nombreEstado: 'Cancelada',
-        idTipoSolicitud: '1',
-        idLugarEncuentro: '1',
-        idMotivoVisita: '1',
-        descripcionMotivo: 'Auditoría anual',
-        visitantes: const [
-          VisitanteModel(
-            idVisitante: 3,
-            nombre: 'Carlos',
-            apellidos: 'Ruiz Díaz',
-            correoPersonal: 'carlos@correo.com',
-          ),
-        ],
-      ),
-    ];
-
-    _estadoLista = EstadoCarga.exito;
+    try {
+      final idEmp  = await _session.leerEmpleadoId() ?? 0;
+      _solicitudes = await _repo.obtenerMisSolicitudes(idEmp);
+      _estadoLista = EstadoCarga.exito;
+    } catch (e) {
+      _errorLista  = _mensajeError(e);
+      _estadoLista = EstadoCarga.error;
+      AppLogger.error('SolicitanteProvider', 'Error cargar solicitudes', e);
+    }
     notifyListeners();
   }
 
-  // ---------------------------------------------------------------------------
-  // Acciones - Detalle
-  // ---------------------------------------------------------------------------
+  // ══════════════════════════════════════════════════════════════════════════
+  // DETALLE
+  // ══════════════════════════════════════════════════════════════════════════
 
-  /// Carga el detalle de una solicitud específica.
   Future<void> cargarDetalle(int idSolicitud) async {
     _estadoDetalle = EstadoCarga.cargando;
-    _errorDetalle = '';
+    _errorDetalle  = '';
     notifyListeners();
-
-    await Future.delayed(const Duration(milliseconds: 300));
-    _solicitudDetalle = _solicitudes.firstWhere(
-      (s) => s.idSolicitud == idSolicitud,
-      orElse: () => _solicitudes.first,
-    );
-    _estadoDetalle = EstadoCarga.exito;
+    try {
+      _solicitudDetalle = _solicitudes.firstWhere(
+        (s) => s.idSolicitud == idSolicitud,
+        orElse: () => throw const NoEncontradoException('Solicitud no encontrada.'),
+      );
+      _estadoDetalle = EstadoCarga.exito;
+    } catch (e) {
+      _errorDetalle  = _mensajeError(e);
+      _estadoDetalle = EstadoCarga.error;
+    }
     notifyListeners();
   }
 
-  /// Cancela una solicitud y recarga la lista.
   Future<bool> cancelarSolicitud(int idSolicitud) async {
     try {
+      await _repo.cancelar(idSolicitud);
       await cargarSolicitudes();
       return true;
     } catch (e) {
-      _errorDetalle = e.toString();
+      _errorDetalle = _mensajeError(e);
       notifyListeners();
       return false;
     }
   }
 
-  // ---------------------------------------------------------------------------
-  // Acciones - Wizard nueva solicitud
-  // ---------------------------------------------------------------------------
+  // ══════════════════════════════════════════════════════════════════════════
+  // VISITANTES FRECUENTES (R2)
+  // ══════════════════════════════════════════════════════════════════════════
 
-  void avanzarPaso() {
-    if (_pasoActual < 2) {
-      _pasoActual++;
+  Future<void> cargarVisitantesFrecuentes() async {
+    try {
+      final idEmp = await _session.leerEmpleadoId() ?? 0;
+      _visitantesFrecuentes = await _repo.visitantesFrecuentes(idEmp);
       notifyListeners();
-    }
+    } catch (_) {}
   }
 
-  void retrocederPaso() {
-    if (_pasoActual > 0) {
-      _pasoActual--;
-      notifyListeners();
-    }
+  void usarVisitanteFrecuente(int index, Map<String, dynamic> datos) {
+    actualizarVisitante(index, VisitanteModel(
+      idVisitante:    datos['id_visitante']    as int?    ?? 0,
+      nombre:         datos['nombre']          as String? ?? '',
+      apellidos:      datos['apellidos']       as String? ?? '',
+      correoPersonal: datos['correo_personal'] as String? ?? '',
+    ));
   }
+
+  // ══════════════════════════════════════════════════════════════════════════
+  // WIZARD
+  // ══════════════════════════════════════════════════════════════════════════
+
+  void avanzarPaso()   { if (_pasoActual < 2) { _pasoActual++; notifyListeners(); } }
+  void retrocederPaso(){ if (_pasoActual > 0) { _pasoActual--; notifyListeners(); } }
 
   void setTipoVisita(String tipo) {
     _tipoVisita = tipo;
     if (tipo == 'individual') {
-      _visitantes = [
-        const VisitanteModel(nombre: '', apellidos: '', correoPersonal: ''),
-      ];
+      _visitantes = [const VisitanteModel(nombre: '', apellidos: '', correoPersonal: '')];
     }
     notifyListeners();
   }
 
-  void actualizarVisitante(int index, VisitanteModel visitante) {
+  void actualizarVisitante(int index, VisitanteModel v) {
     if (index < _visitantes.length) {
-      _visitantes = List.from(_visitantes)..[index] = visitante;
+      _visitantes = List.from(_visitantes)..[index] = v;
       notifyListeners();
     }
   }
 
   void agregarVisitante() {
-    _visitantes = [
-      ..._visitantes,
-      const VisitanteModel(nombre: '', apellidos: '', correoPersonal: ''),
-    ];
+    _visitantes = [..._visitantes,
+      const VisitanteModel(nombre: '', apellidos: '', correoPersonal: '')];
     notifyListeners();
   }
 
@@ -257,88 +202,100 @@ class SolicitanteProvider extends ChangeNotifier {
     }
   }
 
-  void setMotivoVisita(String motivo) {
-    _motivoVisita = motivo;
-    notifyListeners();
-  }
+  void setMotivoVisita(String v)    { _motivoVisita   = v; notifyListeners(); }
+  void setLugarEncuentro(String v)  { _lugarEncuentro = v; notifyListeners(); }
+  void setFechaVisita(DateTime v)   { _fechaVisita    = v; notifyListeners(); }
+  void setHoraVisita(TimeOfDay v)   { _horaVisita     = v; notifyListeners(); }
+  void setTolerancia(int v)         { _toleranciaMinutos = v; notifyListeners(); }
 
-  void setLugarEncuentro(String lugar) {
-    _lugarEncuentro = lugar;
-    notifyListeners();
-  }
-
-  void setFechaVisita(DateTime fecha) {
-    _fechaVisita = fecha;
-    notifyListeners();
-  }
-
-  void setHoraVisita(TimeOfDay hora) {
-    _horaVisita = hora;
-    notifyListeners();
-  }
-
-  void setTolerancia(int minutos) {
-    _toleranciaMinutos = minutos;
-    notifyListeners();
-  }
-
-  /// Envía la solicitud (mock para desarrollo).
   Future<void> enviarSolicitud() async {
-  if (_fechaVisita == null || _horaVisita == null) return;
+    if (_fechaVisita == null || _horaVisita == null) return;
+    _enviando = true; _errorCrear = ''; _creacionExitosa = false;
+    notifyListeners();
 
-  _enviando = true;
-  _errorCrear = '';
-  _creacionExitosa = false;
-  notifyListeners();
+    try {
+      final idEmp  = await _session.leerEmpleadoId() ?? 0;
+      final idJefe = await _session.leerJefeId() ?? 0;
 
-  await Future.delayed(const Duration(milliseconds: 800));
+      final visLst = _visitantes.map((v) => {
+        'nombre':    v.nombre,
+        'apellidos': v.apellidos,
+        'correo':    v.correoPersonal,
+      }).toList();
 
-  _creacionExitosa = true;
+      final fecha = DateTime(
+        _fechaVisita!.year, _fechaVisita!.month, _fechaVisita!.day,
+        _horaVisita!.hour,  _horaVisita!.minute,
+      );
 
-  await cargarSolicitudes();
+      await _repo.crearSolicitud(
+        fechaInicio:       fecha,
+        toleranciaAntes:   _toleranciaMinutos,
+        toleranciaDespues: _toleranciaMinutos,
+        lugarEncuentro:    _lugarEncuentro,
+        motivoVisita:      _motivoVisita,
+        idTipoSolicitud:   _tipoVisita == 'grupal' ? 4 : 1,
+        idAutorizador:     idJefe,
+        idAutorizadorAlt:  99,
+        idSolicitante:     idEmp,
+        visitantes:        visLst,
+      );
 
-  _enviando = false;
-  notifyListeners();
-}
+      _creacionExitosa = true;
+      await cargarSolicitudes();
+    } on VetoException catch (e)       { _errorCrear = e.mensaje; }
+      on ValidationException catch (e) { _errorCrear = e.mensaje; }
+      catch (e) {
+      _errorCrear = _mensajeError(e);
+      AppLogger.error('SolicitanteProvider', 'Error crear solicitud', e);
+    }
 
-  void _resetearWizard() {
-    _pasoActual = 0;
-    _tipoVisita = 'individual';
-    _visitantes = [
-      const VisitanteModel(nombre: '', apellidos: '', correoPersonal: ''),
-    ];
-    _motivoVisita = '';
-    _lugarEncuentro = '';
-    _fechaVisita = null;
-    _horaVisita = null;
-    _toleranciaMinutos = 15;
-    _creacionExitosa = false;
+    _enviando = false;
+    notifyListeners();
   }
 
   void iniciarNuevaSolicitud() {
-    _resetearWizard();
+    _pasoActual = 0; _tipoVisita = 'individual';
+    _visitantes = [const VisitanteModel(nombre: '', apellidos: '', correoPersonal: '')];
+    _motivoVisita = ''; _lugarEncuentro = '';
+    _fechaVisita = null; _horaVisita = null;
+    _toleranciaMinutos = 15; _creacionExitosa = false; _errorCrear = '';
     notifyListeners();
   }
 
-  // ---------------------------------------------------------------------------
-  // Acciones - Catálogos
-  // ---------------------------------------------------------------------------
+  // ══════════════════════════════════════════════════════════════════════════
+  // CATÁLOGOS
+  // ══════════════════════════════════════════════════════════════════════════
 
   Future<void> cargarCatalogos() async {
-    // Mock de catálogos para desarrollo
     _motivos = [
       const CatalogoModel(id: '1', nombre: 'Reunión de trabajo'),
       const CatalogoModel(id: '2', nombre: 'Entrevista laboral'),
       const CatalogoModel(id: '3', nombre: 'Entrega de documentos'),
       const CatalogoModel(id: '4', nombre: 'Auditoría'),
-      const CatalogoModel(id: '5', nombre: 'Otro'),
+      const CatalogoModel(id: '5', nombre: 'Revisión de proyecto'),
+      const CatalogoModel(id: '6', nombre: 'Consulta académica'),
+      const CatalogoModel(id: '7', nombre: 'Otro'),
     ];
     _lugares = [
-      const CatalogoModel(id: '1', nombre: 'Edificio A'),
-      const CatalogoModel(id: '2', nombre: 'Edificio B'),
-      const CatalogoModel(id: '3', nombre: 'Edificio C'),
-      const CatalogoModel(id: '4', nombre: 'Edificio D'),
+      const CatalogoModel(id: '1', nombre: 'Edificio A — Administración'),
+      const CatalogoModel(id: '2', nombre: 'Edificio B — Aulas'),
+      const CatalogoModel(id: '3', nombre: 'Edificio C — Laboratorios'),
+      const CatalogoModel(id: '4', nombre: 'Sistemas y Computación'),
+      const CatalogoModel(id: '5', nombre: 'Recursos Humanos'),
+      const CatalogoModel(id: '6', nombre: 'Dirección General'),
+      const CatalogoModel(id: '7', nombre: 'Alberca'),
     ];
     notifyListeners();
+  }
+
+  String _mensajeError(Object e) {
+    if (e is VetoException)         return e.mensaje;
+    if (e is ValidationException)   return e.mensaje;
+    if (e is NoEncontradoException) return e.mensaje;
+    if (e is ConcurrenciaException) return e.mensaje;
+    if (e is SinConexionException)  return 'Sin conexión.';
+    if (e is AuthException)         return e.mensaje;
+    return 'Error inesperado. Intenta de nuevo.';
   }
 }

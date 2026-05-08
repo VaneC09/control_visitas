@@ -1,25 +1,26 @@
 // =============================================================================
 // Archivo    : solicitud_model.dart
 // Módulo     : features/autorizador/data/models
-// Descripción: Modelo de solicitud de visita con serialización JSON.
-//              Implementa fromJson / toJson
-// Autor      : Yadhira Anadanely Benitez Millan
-// Versión    : 1.0.0
-// Fecha      : 2026-04-25
+// Descripción: Modelo unificado de solicitud de visita.
+//              Compatible con el repositorio local SQLite y con la futura
+//              API Laravel. Usa exactamente los nombres del ER.
+// Ruta       : lib/features/autorizador/data/models/solicitud_model.dart
 // =============================================================================
 
 import 'visitante_model.dart';
 
-/// Representa una solicitud de visita recibida desde la API REST.
-/// Es inmutable — no modificar propiedades después de construirlo.
+/// Modelo de solicitud de visita.
+/// Inmutable — no modificar propiedades después de construirlo.
 class SolicitudModel {
   final int    idSolicitud;
   final String fechaInicio;
   final int    toleranciaAntes;
   final int    toleranciaDespues;
+  // CORRECCIÓN: campo unificado — era prorrogaToleran en algunos archivos
   final bool   prorrogaTolerancia;
   final String observaciones;
   final String fechaCreacion;
+  // CORRECCIÓN: campo 'estado' = nombre del estado (pendiente, aprobada, etc.)
   final String estado;
   final String tipoSolicitud;
   final String lugarEncuentro;
@@ -54,50 +55,43 @@ class SolicitudModel {
   });
 
   // ---------------------------------------------------------------------------
-  // Deserialización desde respuesta JSON del API (MPF-OMEGA-04 §6.2.4)
+  // Deserialización desde JSON de la API futura
   // ---------------------------------------------------------------------------
-
-  /// Crea un SolicitudModel a partir del JSON del servidor.
-  /// Valida tipos y maneja valores opcionales de forma controlada.
   factory SolicitudModel.fromJson(Map<String, dynamic> json) {
-    // Deserializar lista de visitantes
     final visitantesJson = json['visitantes'] as List<dynamic>? ?? [];
     final visitantes = visitantesJson
         .map((v) => VisitanteModel.fromJson(v as Map<String, dynamic>))
         .toList();
 
     return SolicitudModel(
-      idSolicitud:             json['idSolicitud']            as int? ?? 0,
+      idSolicitud:             json['idSolicitud']            as int?    ?? 0,
       fechaInicio:             json['fechaInicio']            as String? ?? '',
-      toleranciaAntes:         json['toleranciaAntes']        as int? ?? 15,
-      toleranciaDespues:       json['toleranciaDespues']      as int? ?? 15,
-      prorrogaTolerancia:         json['prorrogaToleran']        as bool? ?? false,
+      toleranciaAntes:         json['toleranciaAntes']        as int?    ?? 15,
+      toleranciaDespues:       json['toleranciaDespues']      as int?    ?? 15,
+      prorrogaTolerancia:      json['prorrogaToleran']        as bool?   ?? false,
       observaciones:           json['observaciones']          as String? ?? '',
       fechaCreacion:           json['fechaCreacion']          as String? ?? '',
       estado:                  json['estado']                 as String? ?? '',
       tipoSolicitud:           json['tipoSolicitud']          as String? ?? '',
       lugarEncuentro:          json['lugarEncuentro']         as String? ?? '',
       motivoVisita:            json['motivoVisita']           as String? ?? '',
-      idSolicitante:           json['idSolicitante']          as int? ?? 0,
+      idSolicitante:           json['idSolicitante']          as int?    ?? 0,
       nombreSolicitante:       json['nombreSolicitante']      as String? ?? '',
       departamentoSolicitante: json['departamentoSolicitante']as String? ?? '',
       correoSolicitante:       json['correoSolicitante']      as String? ?? '',
-      idAutorizador:           json['idAutorizador']          as int? ?? 0,
+      idAutorizador:           json['idAutorizador']          as int?    ?? 0,
       nombreAutorizador:       json['nombreAutorizador']      as String? ?? '',
       visitantes:              visitantes,
     );
   }
 
-  // ---------------------------------------------------------------------------
-  // Serialización a JSON (para logs o caché local)
-  // ---------------------------------------------------------------------------
-
+  // Serialización para logs / caché
   Map<String, dynamic> toJson() => {
     'idSolicitud':             idSolicitud,
     'fechaInicio':             fechaInicio,
     'toleranciaAntes':         toleranciaAntes,
     'toleranciaDespues':       toleranciaDespues,
-    'prorrogaTolerancia':      prorrogaTolerancia,
+    'prorrogaToleran':         prorrogaTolerancia,
     'observaciones':           observaciones,
     'fechaCreacion':           fechaCreacion,
     'estado':                  estado,
